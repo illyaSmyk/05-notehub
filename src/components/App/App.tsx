@@ -56,7 +56,7 @@ const App: React.FC = () => {
     }
   };
 
-  // Удаление заметки
+  // Удаление какой-то заметки
   const handleDeleteNote = async (id: string) => {
     try {
       await deleteNote(id);
