@@ -10,9 +10,9 @@ import Pagination from "../Pagination/Pagination";
 import LoadingIndicator from "../LoadingIndicator/LoadingIndicator";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 
-import { fetchNotes, createNote, deleteNote,} from "../api/notes";
+import { fetchNotes, createNote, deleteNote,} from "../../services/noteService";
 import type { NoteFormValues } from "../../types/note";
-import type { Note } from "../api/notes"
+import type { Note } from "../../services/noteService"
 
 
 const PER_PAGE = 12;

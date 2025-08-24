@@ -1,5 +1,5 @@
 import React from "react";
-import type { Note } from "../api/notes";
+import type { Note } from "../../services/noteService";
 import css from "./NoteList.module.css";
 
 interface NoteListProps {

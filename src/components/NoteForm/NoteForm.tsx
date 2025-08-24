@@ -10,7 +10,7 @@ type NoteFormProps = {
   onCancel: () => void;
 };
 
-// Схема валидации
+//  валидация
 const NoteSchema = Yup.object().shape({
   title: Yup.string()
     .min(3, "Title must be at least 3 characters")
