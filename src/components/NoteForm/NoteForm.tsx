@@ -1,87 +1,68 @@
 import React from "react";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
+import {  tags } from "../../types/note";
 import type { NoteFormValues, Tag } from "../../types/note";
-import { tags } from "../../types/note";
 import css from "./NoteForm.module.css";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { createNote } from "../../services/noteService";
 
-type NoteFormProps = {
+export interface NoteFormProps {
   onSubmit: (values: NoteFormValues) => void;
   onCancel: () => void;
-};
+}
 
-//  валидация
 const NoteSchema = Yup.object().shape({
-  title: Yup.string()
-    .min(3, "Title must be at least 3 characters")
-    .max(50, "Title can't be longer than 50 characters")
-    .required("Title is required"),
-  content: Yup.string()
-    .max(500, "Content can't be longer than 500 characters"),
-  tag: Yup.mixed<Tag>()
-    .oneOf(tags, "Invalid tag")
-    .required("Tag is required"),
+  title: Yup.string().min(3).max(50).required("Title is required"),
+  content: Yup.string().max(500),
+  tag: Yup.mixed<Tag>().oneOf(tags).required("Tag is required"),
 });
 
-const NoteForm: React.FC<NoteFormProps> = ({ onSubmit, onCancel }) => {
-  const initialValues: NoteFormValues = {
-    title: "",
-    content: "",
-    tag: "Todo",
-  };
+const NoteForm: React.FC<NoteFormProps> = ({ onCancel }) => {
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: createNote,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notes"] });
+      onCancel();
+    },
+  });
+
+  const initialValues: NoteFormValues = { title: "", content: "", tag: "Todo" };
 
   return (
     <Formik
       initialValues={initialValues}
       validationSchema={NoteSchema}
-      onSubmit={onSubmit}
+      onSubmit={(values) => mutation.mutate(values)}
     >
       {({ isSubmitting }) => (
         <Form className={css.form}>
           <div className={css.formGroup}>
-            <Field
-              name="title"
-              type="text"
-              placeholder="Title"
-              className={css.input}
-            />
+            <Field name="title" type="text" placeholder="Title" className={css.input} />
             <ErrorMessage name="title" component="div" className={css.error} />
           </div>
 
           <div className={css.formGroup}>
-            <Field
-              name="content"
-              as="textarea"
-              placeholder="Content"
-              className={css.textarea}
-            />
+            <Field name="content" as="textarea" placeholder="Content" className={css.textarea} />
             <ErrorMessage name="content" component="div" className={css.error} />
           </div>
 
           <div className={css.formGroup}>
             <Field name="tag" as="select" className={css.select}>
               {tags.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
+                <option key={t} value={t}>{t}</option>
               ))}
             </Field>
             <ErrorMessage name="tag" component="div" className={css.error} />
           </div>
 
           <div className={css.actions}>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className={css.submitButton}
-            >
+            <button type="submit" disabled={isSubmitting} className={css.submitButton}>
               Save
             </button>
-            <button
-              type="button"
-              onClick={onCancel}
-              className={css.cancelButton}
-            >
+            <button type="button" onClick={onCancel} className={css.cancelButton}>
               Cancel
             </button>
           </div>

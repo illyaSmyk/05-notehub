@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useDebounce } from "use-debounce";
 
 import css from "./App.module.css";
@@ -10,60 +11,47 @@ import Pagination from "../Pagination/Pagination";
 import LoadingIndicator from "../LoadingIndicator/LoadingIndicator";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 
-import { fetchNotes, createNote, deleteNote,} from "../../services/noteService";
-import type { NoteFormValues } from "../../types/note";
-import type { Note } from "../../services/noteService"
-
+import { fetchNotes, createNote } from "../../services/noteService";
+import type { FetchNotesResponse, NoteFormValues } from "../../types/note";
 
 const PER_PAGE = 12;
 
 const App: React.FC = () => {
-  const [notes, setNotes] = useState<Note[]>([]);
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(0);
   const [search, setSearch] = useState("");
   const [debouncedSearch] = useDebounce(search, 500);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  // Загрузка заметок
-  useEffect(() => {
-    const loadNotes = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const data = await fetchNotes(page, PER_PAGE, debouncedSearch);
-        setNotes(data.notes);
-        setTotalPages(data.totalPages);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Unknown error");
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadNotes();
-  }, [page, debouncedSearch]);
+  const queryClient = useQueryClient();
 
-  // Создание заметки
-  const handleCreateNote = async (values: NoteFormValues) => {
-    try {
-      const newNote = await createNote(values);
-      setNotes((prev) => [newNote, ...prev]);
+  // Запрос заметок
+  const {
+    data,
+    isLoading,
+    isError,
+    error,
+  } = useQuery<FetchNotesResponse, Error>({
+    queryKey: ["notes", page, debouncedSearch],
+    queryFn: () => fetchNotes(page, PER_PAGE, debouncedSearch),
+    staleTime: 1000 * 60, // 1 минута кеша
+  });
+
+  // Мутация для создания заметки
+  const createNoteMutation = useMutation({
+    mutationFn: (values: NoteFormValues) => createNote(values),
+    onSuccess: () => {
+      // После успешного создания — обновляем список заметок
+      queryClient.invalidateQueries({ queryKey: ["notes"] });
       setIsModalOpen(false);
-    } catch (err) {
-      if (err instanceof Error) setError(err.message);
-    }
+    },
+  });
+
+  const handlePageChange = (selected: number) => {
+    setPage(selected + 1);
   };
 
-  // Удаление какой-то заметки
-  const handleDeleteNote = async (id: string) => {
-    try {
-      await deleteNote(id);
-      setNotes((prev) => prev.filter((note) => note.id !== id));
-    } catch (err) {
-      if (err instanceof Error) setError(err.message);
-    }
+  const handleCreateNote = (values: NoteFormValues) => {
+    createNoteMutation.mutate(values);
   };
 
   return (
@@ -71,14 +59,14 @@ const App: React.FC = () => {
       <header className={css.toolbar}>
         <SearchBox value={search} onChange={setSearch} />
 
-        {totalPages > 1 && (
+        {(data?.totalPages ?? 0) > 1 && (
           <Pagination
-            pageCount={totalPages}
-            forcePage={page - 1}
-            onPageChange={({ selected }) => setPage(selected + 1)}
-            pageRangeDisplayed={2}
-            marginPagesDisplayed={1}
-          />
+  pageCount={data?.totalPages ?? 1}
+  forcePage={page - 1}
+  onPageChange={({ selected }) => handlePageChange(selected)}
+  pageRangeDisplayed={2}
+  marginPagesDisplayed={1}
+/>
         )}
 
         <button className={css.button} onClick={() => setIsModalOpen(true)}>
@@ -86,10 +74,12 @@ const App: React.FC = () => {
         </button>
       </header>
 
-      {loading && <LoadingIndicator />}
-      {error && <ErrorMessage message={error} />}
+      {isLoading && <LoadingIndicator />}
+      {isError && <ErrorMessage message={error?.message || "Unknown error"} />}
 
-      {!loading && !error && <NoteList notes={notes} onDelete={handleDeleteNote} />}
+      {!isLoading && !isError && data && (
+        <NoteList notes={data.notes} />
+      )}
 
       {isModalOpen && (
         <Modal onClose={() => setIsModalOpen(false)}>

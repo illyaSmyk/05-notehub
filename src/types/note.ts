@@ -1,4 +1,4 @@
-// src/types/note.ts
+
 export type Tag = "Todo" | "Work" | "Personal" | "Meeting" | "Shopping";
 
 export interface Note {
@@ -17,3 +17,13 @@ export interface NoteFormValues {
 }
 
 export const tags: Tag[] = ["Todo", "Work", "Personal", "Meeting", "Shopping"];
+
+export interface PaginatedNotes {
+  notes: Note[];
+  totalPages: number;
+}
+
+export interface FetchNotesResponse {
+  notes: Note[];
+  totalPages: number;
+}
