@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { useDebounce } from "use-debounce";
 
 import css from "./App.module.css";
@@ -12,7 +12,9 @@ import LoadingIndicator from "../LoadingIndicator/LoadingIndicator";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 
 import { fetchNotes, createNote } from "../../services/noteService";
-import type { FetchNotesResponse, NoteFormValues } from "../../types/note";
+import type { FetchNotesResponse,} from "../../types/api";
+
+import type { NoteFormValues } from "../../types/note";
 
 const PER_PAGE = 12;
 
@@ -34,6 +36,7 @@ const App: React.FC = () => {
     queryKey: ["notes", page, debouncedSearch],
     queryFn: () => fetchNotes(page, PER_PAGE, debouncedSearch),
     staleTime: 1000 * 60, // 1 минута кеша
+    placeholderData: keepPreviousData,
   });
 
   // Мутация для создания заметки
@@ -50,9 +53,7 @@ const App: React.FC = () => {
     setPage(selected + 1);
   };
 
-  const handleCreateNote = (values: NoteFormValues) => {
-    createNoteMutation.mutate(values);
-  };
+ 
 
   return (
     <div className={css.app}>
@@ -84,7 +85,7 @@ const App: React.FC = () => {
       {isModalOpen && (
         <Modal onClose={() => setIsModalOpen(false)}>
           <NoteForm
-            onSubmit={handleCreateNote}
+            onSubmit={(values) => createNoteMutation.mutate(values)}
             onCancel={() => setIsModalOpen(false)}
           />
         </Modal>
