@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { useDebounce } from "use-debounce";
 
 import css from "./App.module.css";
@@ -11,10 +11,8 @@ import Pagination from "../Pagination/Pagination";
 import LoadingIndicator from "../LoadingIndicator/LoadingIndicator";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 
-import { fetchNotes, createNote } from "../../services/noteService";
-import type { FetchNotesResponse,} from "../../types/api";
-
-import type { NoteFormValues } from "../../types/note";
+import { fetchNotes } from "../../services/noteService";
+import type { FetchNotesResponse } from "../../types/api";
 
 const PER_PAGE = 12;
 
@@ -23,8 +21,6 @@ const App: React.FC = () => {
   const [search, setSearch] = useState("");
   const [debouncedSearch] = useDebounce(search, 500);
   const [isModalOpen, setIsModalOpen] = useState(false);
-
-  const queryClient = useQueryClient();
 
   // Запрос заметок
   const {
@@ -39,21 +35,9 @@ const App: React.FC = () => {
     placeholderData: keepPreviousData,
   });
 
-  // Мутация для создания заметки
-  const createNoteMutation = useMutation({
-    mutationFn: (values: NoteFormValues) => createNote(values),
-    onSuccess: () => {
-      // После успешного создания — обновляем список заметок
-      queryClient.invalidateQueries({ queryKey: ["notes"] });
-      setIsModalOpen(false);
-    },
-  });
-
   const handlePageChange = (selected: number) => {
     setPage(selected + 1);
   };
-
- 
 
   return (
     <div className={css.app}>
@@ -62,12 +46,12 @@ const App: React.FC = () => {
 
         {(data?.totalPages ?? 0) > 1 && (
           <Pagination
-  pageCount={data?.totalPages ?? 1}
-  forcePage={page - 1}
-  onPageChange={({ selected }) => handlePageChange(selected)}
-  pageRangeDisplayed={2}
-  marginPagesDisplayed={1}
-/>
+            pageCount={data?.totalPages ?? 1}
+            forcePage={page - 1}
+            onPageChange={({ selected }) => handlePageChange(selected)}
+            pageRangeDisplayed={2}
+            marginPagesDisplayed={1}
+          />
         )}
 
         <button className={css.button} onClick={() => setIsModalOpen(true)}>
@@ -84,10 +68,7 @@ const App: React.FC = () => {
 
       {isModalOpen && (
         <Modal onClose={() => setIsModalOpen(false)}>
-          <NoteForm
-            onSubmit={(values) => createNoteMutation.mutate(values)}
-            onCancel={() => setIsModalOpen(false)}
-          />
+          <NoteForm onCancel={() => setIsModalOpen(false)} />
         </Modal>
       )}
     </div>
